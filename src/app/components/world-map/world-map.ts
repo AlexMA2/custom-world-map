@@ -59,6 +59,30 @@ export class WorldMap implements AfterViewInit, OnDestroy {
       // Defer rendering to ensure canvas is ready
       setTimeout(() => this.renderMap(), 0);
     });
+
+    effect(() => {
+      const trigger = this.state.downloadTrigger();
+      if (trigger > 0) {
+        setTimeout(() => this.downloadCanvas(), 50);
+      }
+    });
+  }
+
+  private downloadCanvas() {
+    let canvas: HTMLCanvasElement | undefined;
+    if (this.view() === '3d') {
+      canvas = this.threeCanvas()?.nativeElement;
+      if (this.renderer) this.renderer.render(this.scene, this.camera); // Ensure fresh frame
+    } else {
+      canvas = this.d3Canvas()?.nativeElement;
+    }
+
+    if (!canvas) return;
+    
+    const link = document.createElement('a');
+    link.download = `world-map-${this.view()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
   }
 
   ngAfterViewInit() {
@@ -89,7 +113,12 @@ export class WorldMap implements AfterViewInit, OnDestroy {
   private initThree() {
     const canvas = this.threeCanvas()?.nativeElement;
     if (!canvas) return;
-    this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ 
+      canvas, 
+      alpha: true, 
+      antialias: true,
+      preserveDrawingBuffer: true 
+    });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(window.devicePixelRatio);
 
@@ -156,7 +185,9 @@ export class WorldMap implements AfterViewInit, OnDestroy {
       threeEl.addEventListener('pointerdown', (e) => {
         const intersect = this.getThreeIntersection(e);
         if (intersect) {
-          this.controls.enabled = false;
+          if (this.state.tool() !== 'pan') {
+            this.controls.enabled = false;
+          }
           this.state.startDrawing(intersect.lon, intersect.lat);
         }
       });
@@ -249,7 +280,7 @@ export class WorldMap implements AfterViewInit, OnDestroy {
     const w = canvas.width;
     const h = canvas.height;
 
-    ctx.fillStyle = '#6b7280';
+    ctx.fillStyle = '#3b82f6';
     ctx.fillRect(0, 0, w, h);
 
     const proj = d3.geoEquirectangular().fitSize([w, h], { type: 'Sphere' });
@@ -300,7 +331,7 @@ export class WorldMap implements AfterViewInit, OnDestroy {
     if (!proj) return;
     const path = d3.geoPath(proj, ctx);
 
-    ctx.fillStyle = '#1f2937';
+    ctx.fillStyle = '#3b82f6';
     ctx.beginPath();
     path({ type: 'Sphere' });
     ctx.fill();

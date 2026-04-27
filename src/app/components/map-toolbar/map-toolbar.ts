@@ -1,155 +1,95 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MapStateService, MapView, MapTool, LineMode } from '../../services/map-state.service';
 
 @Component({
   selector: 'app-map-toolbar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatIconModule, MatTooltipModule],
   template: `
-    <!-- Top Toolbar -->
-    <div
-      class="absolute top-0 left-0 w-full p-4 flex gap-4 bg-gray-900/80 backdrop-blur z-10 border-b border-gray-700 items-center justify-between pointer-events-auto"
-    >
-      <div class="flex gap-2 items-center">
-        <span class="font-bold text-xl mr-4">World Map</span>
+    <!-- Top Watermark -->
+    <div class="absolute top-6 left-6 z-10 pointer-events-none opacity-50 select-none flex items-center gap-2">
+      <mat-icon class="text-4xl text-white">public</mat-icon>
+      <span class="font-bold text-3xl tracking-wider uppercase text-white drop-shadow-md">WorldMap</span>
+    </div>
 
-        <div class="flex bg-gray-800 rounded p-1">
-          <button
-            (click)="setView('3d')"
-            [class.bg-blue-600]="view() === '3d'"
-            class="px-3 py-1 rounded"
-          >
-            3D Sphere
-          </button>
-          <button
-            (click)="setView('mercator')"
-            [class.bg-blue-600]="view() === 'mercator'"
-            class="px-3 py-1 rounded"
-          >
-            Mercator
-          </button>
-          <button
-            (click)="setView('equirectangular')"
-            [class.bg-blue-600]="view() === 'equirectangular'"
-            class="px-3 py-1 rounded"
-          >
-            Equirectangular
-          </button>
-          <button
-            (click)="setView('orthographic')"
-            [class.bg-blue-600]="view() === 'orthographic'"
-            class="px-3 py-1 rounded"
-          >
-            Orthographic (2D)
-          </button>
-        </div>
+    <!-- Floating Sidebar for Projections -->
+    <div class="absolute top-1/2 right-6 -translate-y-1/2 flex flex-col gap-3 z-10 p-3 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.37)] pointer-events-auto transition-all">
+      <button matTooltip="3D Sphere" matTooltipPosition="left" (click)="setView('3d')" [class.bg-white]="view() === '3d'" [class.text-blue-600]="view() === '3d'" [class.text-white]="view() !== '3d'" [class.bg-white/5]="view() !== '3d'" class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+        <mat-icon>language</mat-icon>
+      </button>
+      <div class="w-full h-px bg-white/20 my-1"></div>
+      <button matTooltip="Mercator" matTooltipPosition="left" (click)="setView('mercator')" [class.bg-white]="view() === 'mercator'" [class.text-blue-600]="view() === 'mercator'" [class.text-white]="view() !== 'mercator'" [class.bg-white/5]="view() !== 'mercator'" class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+        <mat-icon>map</mat-icon>
+      </button>
+      <button matTooltip="Equirectangular" matTooltipPosition="left" (click)="setView('equirectangular')" [class.bg-white]="view() === 'equirectangular'" [class.text-blue-600]="view() === 'equirectangular'" [class.text-white]="view() !== 'equirectangular'" [class.bg-white/5]="view() !== 'equirectangular'" class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+        <mat-icon>panorama_horizontal</mat-icon>
+      </button>
+      <button matTooltip="Orthographic (2D)" matTooltipPosition="left" (click)="setView('orthographic')" [class.bg-white]="view() === 'orthographic'" [class.text-blue-600]="view() === 'orthographic'" [class.text-white]="view() !== 'orthographic'" [class.bg-white/5]="view() !== 'orthographic'" class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+        <mat-icon>radio_button_unchecked</mat-icon>
+      </button>
+    </div>
+
+    <!-- Bottom Toolbar for Tools -->
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 z-10 p-3 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.37)] pointer-events-auto">
+      
+      <!-- Primary Tools -->
+      <div class="flex gap-2">
+        <button matTooltip="Pan Map" (click)="setTool('pan')" [class.bg-white]="tool() === 'pan'" [class.text-blue-600]="tool() === 'pan'" [class.text-white]="tool() !== 'pan'" class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+          <mat-icon>pan_tool</mat-icon>
+        </button>
+        <button matTooltip="Draw Continent" (click)="setTool('draw')" [class.bg-white]="tool() === 'draw'" [class.text-green-600]="tool() === 'draw'" [class.text-white]="tool() !== 'draw'" class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button matTooltip="Auto Generate (Splash)" (click)="setTool('splash')" [class.bg-white]="tool() === 'splash'" [class.text-cyan-600]="tool() === 'splash'" [class.text-white]="tool() !== 'splash'" class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+          <mat-icon>water_drop</mat-icon>
+        </button>
+        <button matTooltip="Eraser" (click)="setTool('eraser')" [class.bg-white]="tool() === 'eraser'" [class.text-red-500]="tool() === 'eraser'" [class.text-white]="tool() !== 'eraser'" class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+          <mat-icon>cleaning_services</mat-icon>
+        </button>
+        <button matTooltip="Draw Lines" (click)="setTool('lines')" [class.bg-white]="tool() === 'lines'" [class.text-purple-600]="tool() === 'lines'" [class.text-white]="tool() !== 'lines'" class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+          <mat-icon>straighten</mat-icon>
+        </button>
       </div>
 
-      <div class="flex gap-2 items-center">
-        <div class="flex bg-gray-800 rounded p-1">
-          <button
-            (click)="setTool('hand')"
-            [class.bg-green-600]="tool() === 'hand'"
-            class="px-3 py-1 rounded"
-            title="Draw Continent"
-          >
-            ✏️ Hand
-          </button>
-          <button
-            (click)="setTool('splash')"
-            [class.bg-green-600]="tool() === 'splash'"
-            class="px-3 py-1 rounded"
-            title="Auto Generate Continent"
-          >
-            💦 Splash
-          </button>
-          <button
-            (click)="setTool('eraser')"
-            [class.bg-green-600]="tool() === 'eraser'"
-            class="px-3 py-1 rounded"
-            title="Erase Continent"
-          >
-            🧽 Eraser
-          </button>
-          <button
-            (click)="setTool('lines')"
-            [class.bg-green-600]="tool() === 'lines'"
-            class="px-3 py-1 rounded"
-            title="Draw Lines"
-          >
-            📏 Lines
-          </button>
-        </div>
+      <div class="w-px h-10 bg-white/20 mx-2"></div>
 
-        <label class="flex items-center gap-2 ml-4 bg-gray-800 px-3 py-1 rounded cursor-pointer">
-          <input type="checkbox" [checked]="showLines()" (change)="toggleLines()" class="w-4 h-4" />
-          Show Lines
-        </label>
+      <!-- Visibility / Download Actions -->
+      <div class="flex gap-2">
+        <button [matTooltip]="showLines() ? 'Hide Lines' : 'Show Lines'" (click)="toggleLines()" [class.bg-white]="showLines()" [class.text-purple-600]="showLines()" [class.text-white]="!showLines()" class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+          <mat-icon>{{ showLines() ? 'visibility' : 'visibility_off' }}</mat-icon>
+        </button>
+        <button matTooltip="Download Image" (click)="triggerDownload()" class="w-12 h-12 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition-all">
+          <mat-icon>download</mat-icon>
+        </button>
       </div>
     </div>
 
-    <!-- Sub Toolbar -->
-    <div
-      class="absolute top-16 left-0 w-full p-2 flex gap-4 justify-center z-10 pointer-events-none"
-    >
+    <!-- Sub Toolbars (Conditional based on active tool) -->
+    <div class="absolute bottom-28 left-1/2 -translate-x-1/2 pointer-events-none z-10 flex gap-4">
       @if (tool() === 'splash') {
-        <div
-          class="bg-gray-800/90 p-2 rounded flex gap-4 pointer-events-auto border border-gray-600"
-        >
-          <label class="flex items-center gap-2 text-sm">
-            Size:
-            <input
-              type="range"
-              min="5"
-              max="50"
-              [value]="splashSize()"
-              (input)="updateSplashSize($event)"
-              class="w-24"
-            />
+        <div class="p-4 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg pointer-events-auto text-white flex gap-6">
+          <label class="flex flex-col gap-1 text-xs uppercase tracking-wider font-semibold">
+            Size
+            <input type="range" min="5" max="50" [value]="splashSize()" (input)="updateSplashSize($event)" class="w-32 accent-cyan-400">
           </label>
-          <label class="flex items-center gap-2 text-sm">
-            Complexity:
-            <input
-              type="range"
-              min="1"
-              max="10"
-              [value]="splashComplexity()"
-              (input)="updateSplashComplexity($event)"
-              class="w-24"
-            />
+          <label class="flex flex-col gap-1 text-xs uppercase tracking-wider font-semibold">
+            Complexity
+            <input type="range" min="1" max="10" [value]="splashComplexity()" (input)="updateSplashComplexity($event)" class="w-32 accent-cyan-400">
           </label>
         </div>
       }
       @if (tool() === 'lines') {
-        <div
-          class="bg-gray-800/90 p-2 rounded flex gap-2 pointer-events-auto border border-gray-600"
-        >
-          <button
-            (click)="setLineMode('free')"
-            [class.bg-purple-600]="lineMode() === 'free'"
-            class="px-3 py-1 rounded text-sm"
-          >
-            Freehand
-          </button>
-          <button
-            (click)="setLineMode('straight')"
-            [class.bg-purple-600]="lineMode() === 'straight'"
-            class="px-3 py-1 rounded text-sm"
-          >
-            Straight
-          </button>
-          <button
-            (click)="setLineMode('sector')"
-            [class.bg-purple-600]="lineMode() === 'sector'"
-            class="px-3 py-1 rounded text-sm"
-          >
-            Sector Cut
-          </button>
+        <div class="p-2 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg pointer-events-auto flex gap-2">
+          <button (click)="setLineMode('free')" [class.bg-purple-600]="lineMode() === 'free'" class="px-4 py-2 rounded-xl text-sm font-medium text-white hover:bg-white/10 transition-colors">Freehand</button>
+          <button (click)="setLineMode('straight')" [class.bg-purple-600]="lineMode() === 'straight'" class="px-4 py-2 rounded-xl text-sm font-medium text-white hover:bg-white/10 transition-colors">Straight</button>
+          <button (click)="setLineMode('sector')" [class.bg-purple-600]="lineMode() === 'sector'" class="px-4 py-2 rounded-xl text-sm font-medium text-white hover:bg-white/10 transition-colors">Sector Cut</button>
         </div>
       }
     </div>
-  `,
+  `
 })
 export class MapToolbarComponent {
   private state = inject(MapStateService);
@@ -161,24 +101,28 @@ export class MapToolbarComponent {
   readonly splashSize = this.state.splashSize;
   readonly splashComplexity = this.state.splashComplexity;
 
-  setView(view: MapView) {
-    this.state.setView(view);
-  }
-  setTool(tool: MapTool) {
-    this.state.setTool(tool);
-  }
-  setLineMode(mode: LineMode) {
-    this.state.setLineMode(mode);
-  }
-  toggleLines() {
-    this.state.toggleLines();
+  setView(view: MapView) { this.state.setView(view); }
+  
+  setTool(tool: MapTool) { 
+    if (this.state.tool() === tool) {
+      this.state.setTool('pan'); // toggle off
+    } else {
+      this.state.setTool(tool); 
+    }
   }
 
+  setLineMode(mode: LineMode) { this.state.setLineMode(mode); }
+  toggleLines() { this.state.toggleLines(); }
+  
   updateSplashSize(event: Event) {
     this.state.setSplashSize(Number((event.target as HTMLInputElement).value));
   }
-
+  
   updateSplashComplexity(event: Event) {
     this.state.setSplashComplexity(Number((event.target as HTMLInputElement).value));
+  }
+
+  triggerDownload() {
+    this.state.triggerDownload();
   }
 }
