@@ -61,9 +61,16 @@ export class WorldMap implements AfterViewInit, OnDestroy {
     });
 
     effect(() => {
+      const fb = this.state.feedback();
+      if (fb) {
+        this.showToast(fb.message);
+      }
+    });
+
+    effect(() => {
       const trigger = this.state.downloadTrigger();
       if (trigger > 0) {
-        setTimeout(() => this.downloadCanvas(), 50);
+        setTimeout(() => this.downloadCanvas(), 100);
       }
     });
   }
@@ -79,10 +86,29 @@ export class WorldMap implements AfterViewInit, OnDestroy {
 
     if (!canvas) return;
     
-    const link = document.createElement('a');
-    link.download = `world-map-${this.view()}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    try {
+      const link = document.createElement('a');
+      link.download = `world-map-${this.view()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      this.state.notify('✅ Map downloaded successfully!');
+    } catch (e) {
+      console.error(e);
+      this.state.notify('❌ Download failed');
+    }
+  }
+
+  private showToast(message: string) {
+    const toast = document.getElementById('ux-toast');
+    if (!toast) return;
+    toast.innerText = message;
+    toast.classList.remove('opacity-0', 'translate-y-4');
+    toast.classList.add('opacity-100', 'translate-y-0');
+    
+    setTimeout(() => {
+      toast.classList.remove('opacity-100', 'translate-y-0');
+      toast.classList.add('opacity-0', 'translate-y-4');
+    }, 3000);
   }
 
   ngAfterViewInit() {
@@ -167,9 +193,24 @@ export class WorldMap implements AfterViewInit, OnDestroy {
 
   private onWindowResize() {
     if (!this.camera || !this.renderer) return;
-    this.camera.aspect = window.innerWidth / window.innerHeight;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setSize(w, h);
+
+    const d3Canvas = this.d3Canvas()?.nativeElement;
+    if (d3Canvas && this.d3Context) {
+      const d3W = d3Canvas.clientWidth;
+      const d3H = d3Canvas.clientHeight;
+      d3Canvas.width = d3W * window.devicePixelRatio;
+      d3Canvas.height = d3H * window.devicePixelRatio;
+      this.d3Context.setTransform(1, 0, 0, 1, 0, 0); // Reset scale before re-scaling
+      this.d3Context.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+    
+    this.renderMap();
   }
 
   private animate = () => {
@@ -225,13 +266,19 @@ export class WorldMap implements AfterViewInit, OnDestroy {
     // Undo/Redo shortcuts
     if (e.ctrlKey || e.metaKey) {
       if (e.key.toLowerCase() === 'z') {
-        if (e.shiftKey) this.state.redo();
-        else this.state.undo();
+        if (e.shiftKey) {
+          this.state.redo();
+          this.state.notify('🔄 Redone');
+        } else {
+          this.state.undo();
+          this.state.notify('🔙 Undone');
+        }
         e.preventDefault();
         return;
       }
       if (e.key.toLowerCase() === 'y') {
         this.state.redo();
+        this.state.notify('🔄 Redone');
         e.preventDefault();
         return;
       }

@@ -30,6 +30,7 @@ export class MapStateService {
   readonly currentShapeCoords = signal<[number, number][]>([]);
 
   readonly downloadTrigger = signal(0);
+  readonly feedback = signal<{ message: string; timestamp: number } | null>(null);
 
   private history = signal<MapMemento[]>([]);
   private future = signal<MapMemento[]>([]);
@@ -74,7 +75,6 @@ export class MapStateService {
         lines: [...this.lines()],
       },
     ]);
-    console.log('🚀 ~ MapStateService ~ saveState ~ this.history:', this.history());
     this.future.set([]);
   }
 
@@ -241,5 +241,9 @@ export class MapStateService {
 
     let feature = turf.polygon([points]);
     this.addAndMergeContinent(feature);
+  }
+
+  notify(message: string) {
+    this.feedback.set({ message, timestamp: Date.now() });
   }
 }
