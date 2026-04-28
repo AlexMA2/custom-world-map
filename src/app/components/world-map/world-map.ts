@@ -97,6 +97,7 @@ export class WorldMap implements AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     cancelAnimationFrame(this.animationId);
+    window.removeEventListener('keydown', this.handleKeyDown);
     if (this.renderer) {
       this.renderer.dispose();
     }
@@ -180,6 +181,8 @@ export class WorldMap implements AfterViewInit, OnDestroy {
   };
 
   private setupInteractions() {
+    window.addEventListener('keydown', this.handleKeyDown);
+
     const threeEl = this.threeCanvas()?.nativeElement;
     if (threeEl) {
       threeEl.addEventListener('pointerdown', (e) => {
@@ -215,7 +218,37 @@ export class WorldMap implements AfterViewInit, OnDestroy {
     }
   }
 
-  private getThreeIntersection(e: PointerEvent): { lon: number; lat: number } | null {
+  private handleKeyDown = (e: KeyboardEvent) => {
+    // Ignore if typing in an input
+    if (e.target instanceof HTMLInputElement) return;
+
+    // Undo/Redo shortcuts
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) this.state.redo();
+        else this.state.undo();
+        e.preventDefault();
+        return;
+      }
+      if (e.key.toLowerCase() === 'y') {
+        this.state.redo();
+        e.preventDefault();
+        return;
+      }
+    }
+
+    // Tool shortcuts
+    switch (e.key.toLowerCase()) {
+      case 'p': this.state.setTool('pan'); break;
+      case 'd': this.state.setTool('draw'); break;
+      case 's': this.state.setTool('splash'); break;
+      case 'e': this.state.setTool('eraser'); break;
+      case 'l': this.state.setTool('lines'); break;
+      case 'v': this.state.toggleLines(); break;
+    }
+  };
+
+  private getThreeIntersection(e: PointerEvent): {lon: number, lat: number} | null {
     const canvas = this.threeCanvas()?.nativeElement;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
@@ -324,6 +357,14 @@ export class WorldMap implements AfterViewInit, OnDestroy {
     const ctx = this.d3Context;
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
+
+    if (w === 0 || h === 0) return;
+
+    if (canvas.width !== w * window.devicePixelRatio || canvas.height !== h * window.devicePixelRatio) {
+      canvas.width = w * window.devicePixelRatio;
+      canvas.height = h * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
 
     ctx.clearRect(0, 0, w, h);
 

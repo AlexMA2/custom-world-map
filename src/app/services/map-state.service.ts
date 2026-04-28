@@ -1,10 +1,15 @@
-import { Injectable, signal } from '@angular/core';
+import { computed, Injectable, signal } from '@angular/core';
 import * as d3 from 'd3-geo';
 import * as turf from '@turf/turf';
 
 export type MapView = '3d' | 'mercator' | 'equirectangular' | 'orthographic';
 export type MapTool = 'pan' | 'draw' | 'splash' | 'eraser' | 'lines';
 export type LineMode = 'free' | 'straight' | 'sector';
+
+export interface MapMemento {
+  continents: any[];
+  lines: any[];
+}
 
 @Injectable({
   providedIn: 'root',
@@ -26,27 +31,63 @@ export class MapStateService {
 
   readonly downloadTrigger = signal(0);
 
+  private history: MapMemento[] = [];
+  private future: MapMemento[] = [];
+
+  readonly canUndo = computed(() => this.history.length > 0);
+  readonly canRedo = computed(() => this.future.length > 0);
+
   // Actions
   setView(view: MapView) {
     this.view.set(view);
   }
+
   setTool(tool: MapTool) {
     this.tool.set(tool);
   }
+
   setLineMode(mode: LineMode) {
     this.lineMode.set(mode);
   }
+
   toggleLines() {
     this.showLines.update((v) => !v);
   }
+
   setSplashSize(size: number) {
     this.splashSize.set(size);
   }
+
   setSplashComplexity(comp: number) {
     this.splashComplexity.set(comp);
   }
+
   triggerDownload() {
     this.downloadTrigger.update((v) => v + 1);
+  }
+
+  saveState() {
+    this.history.push({
+      continents: [...this.continents()],
+      lines: [...this.lines()],
+    });
+    this.future = [];
+  }
+
+  undo() {
+    if (this.history.length === 0) return;
+    this.future.push({ continents: [...this.continents()], lines: [...this.lines()] });
+    const previous = this.history.pop()!;
+    this.continents.set(previous.continents);
+    this.lines.set(previous.lines);
+  }
+
+  redo() {
+    if (this.future.length === 0) return;
+    this.history.push({ continents: [...this.continents()], lines: [...this.lines()] });
+    const next = this.future.pop()!;
+    this.continents.set(next.continents);
+    this.lines.set(next.lines);
   }
 
   startDrawing(lon: number, lat: number) {
@@ -73,18 +114,22 @@ export class MapStateService {
     if (!this.isDrawing()) return;
     this.isDrawing.set(false);
     const coords = this.currentShapeCoords();
+    const tool = this.tool();
 
-    if (coords.length < 3 && this.tool() !== 'lines') {
+    if (coords.length < 3 && tool !== 'lines' && tool !== 'eraser') {
       this.currentShapeCoords.set([]);
       return;
     }
 
-    const tool = this.tool();
+    if (tool !== 'pan') {
+      this.saveState();
+    }
+
     if (tool === 'draw') {
       const closedCoords = [...coords, coords[0]];
       let newFeature = turf.polygon([closedCoords]);
       newFeature = turf.rewind(newFeature, { reverse: true }) as any;
-      this.addAndMergeContinent(newFeature);
+      this.addAndMergeContinent(newFeature, false);
     } else if (tool === 'lines') {
       let finalCoords = [...coords];
       const mode = this.lineMode();
@@ -108,7 +153,8 @@ export class MapStateService {
     this.currentShapeCoords.set([]);
   }
 
-  private addAndMergeContinent(newFeature: any) {
+  private addAndMergeContinent(newFeature: any, doSave: boolean = true) {
+    if (doSave) this.saveState();
     // Rewind initial
     turf.rewind(newFeature, { mutate: true });
     if (d3.geoArea(newFeature) > 2 * Math.PI) {
@@ -151,7 +197,7 @@ export class MapStateService {
     const numPoints = 60;
     const size = this.splashSize();
     const complexity = this.splashComplexity();
-    
+
     // Create random phase shifts for organic look
     const phase1 = Math.random() * Math.PI * 2;
     const phase2 = Math.random() * Math.PI * 2;
@@ -159,10 +205,10 @@ export class MapStateService {
 
     for (let i = 0; i < numPoints; i++) {
       const angle = (i / numPoints) * Math.PI * 2;
-      
+
       // Base radius
       let r = size / 2;
-      
+
       // Add organic bumps based on complexity
       r += Math.sin(angle * Math.max(1, complexity) + phase1) * (size * 0.2);
       r += Math.cos(angle * Math.max(2, complexity * 1.5) + phase2) * (size * 0.15);
