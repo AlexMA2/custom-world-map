@@ -2,7 +2,6 @@
 
 CustomWorldMap is a sophisticated, interactive web application built with **Angular 21**, **Three.js**, and **D3.js** that allows users to design, edit, and export custom planetary geographies. Whether you're a world-builder, a tabletop gamer, or a geography enthusiast, this tool provides a powerful suite of features to create continents and borders from scratch.
 
-![Custom World Map Preview](https://via.placeholder.com/1200x600.png?text=Custom+World+Map+Editor+Interface)
 
 ---
 
@@ -54,7 +53,7 @@ Switch seamlessly between different views of your world:
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/custom-world-map.git
+   git clone https://github.com/AlexMA2/custom-world-map
    cd custom-world-map
    ```
 
@@ -99,15 +98,6 @@ The editor handles complex GIS challenges under the hood:
 
 ### Build
 Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
-
-### Running Tests
-Run `ng test` to execute unit tests via **Vitest**.
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
