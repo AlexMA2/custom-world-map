@@ -31,11 +31,11 @@ export class MapStateService {
 
   readonly downloadTrigger = signal(0);
 
-  private history: MapMemento[] = [];
-  private future: MapMemento[] = [];
+  private history = signal<MapMemento[]>([]);
+  private future = signal<MapMemento[]>([]);
 
-  readonly canUndo = computed(() => this.history.length > 0);
-  readonly canRedo = computed(() => this.future.length > 0);
+  readonly canUndo = computed(() => this.history().length > 0);
+  readonly canRedo = computed(() => this.future().length > 0);
 
   // Actions
   setView(view: MapView) {
@@ -67,25 +67,37 @@ export class MapStateService {
   }
 
   saveState() {
-    this.history.push({
-      continents: [...this.continents()],
-      lines: [...this.lines()],
-    });
-    this.future = [];
+    this.history.update((h) => [
+      ...h,
+      {
+        continents: [...this.continents()],
+        lines: [...this.lines()],
+      },
+    ]);
+    console.log('🚀 ~ MapStateService ~ saveState ~ this.history:', this.history());
+    this.future.set([]);
   }
 
   undo() {
-    if (this.history.length === 0) return;
-    this.future.push({ continents: [...this.continents()], lines: [...this.lines()] });
-    const previous = this.history.pop()!;
+    if (this.history().length === 0) return;
+    this.future.update((f) => [
+      ...f,
+      { continents: [...this.continents()], lines: [...this.lines()] },
+    ]);
+    this.history.update((h) => h.slice(0, h.length - 1));
+    const previous = this.history()[this.history().length - 1];
     this.continents.set(previous.continents);
     this.lines.set(previous.lines);
   }
 
   redo() {
-    if (this.future.length === 0) return;
-    this.history.push({ continents: [...this.continents()], lines: [...this.lines()] });
-    const next = this.future.pop()!;
+    if (this.future().length === 0) return;
+    this.history.update((h) => [
+      ...h,
+      { continents: [...this.continents()], lines: [...this.lines()] },
+    ]);
+    this.future.update((f) => f.slice(0, f.length - 1));
+    const next = this.future()[this.future().length - 1];
     this.continents.set(next.continents);
     this.lines.set(next.lines);
   }
