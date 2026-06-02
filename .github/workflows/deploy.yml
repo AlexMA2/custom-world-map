@@ -31,6 +31,9 @@ jobs:
       - name: Build Angular App
         run: npm run build -- --configuration production
 
+      - name: Get me
+        run: aws sts get-caller-identity
+
       - name: Deploy to S3
         run: aws s3 sync dist/custom-world-map/browser s3://world-map-910557809473-us-east-2-an --delete
 
