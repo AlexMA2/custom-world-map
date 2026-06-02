@@ -29,7 +29,7 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Build Angular App
-        run: ng build -- --configuration production
+        run: npm run build -- --configuration production
 
       - name: Deploy to S3
         run: aws s3 sync dist/custom-world-map/browser s3://world-map-910557809473-us-east-2-an --delete
