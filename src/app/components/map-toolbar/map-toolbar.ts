@@ -15,7 +15,7 @@ import { MapStateService, MapView, MapTool, LineMode } from '../../services/map-
     >
       <mat-icon class="text-2xl md:text-4xl text-white">public</mat-icon>
       <span class="font-bold text-xl md:text-3xl tracking-wider uppercase text-white drop-shadow-md"
-        >WorldMap</span
+        >WorldMap <span class="text-xs font-normal">v1.0.0</span> </span
       >
     </div>
 
